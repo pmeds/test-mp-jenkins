@@ -1,8 +1,5 @@
 pipeline {
-  agent { node { label 'Node1' } }
-  environment {
-    PATH = '/var/lib/jenkins/.nvm/versions/node/v14.21.2/bin:/usr/local/rvm/gems/ruby-2.4.0/bin:/usr/local/rvm/gems/ruby-2.4.0@global/bin:/usr/local/rvm/rubies/ruby-2.4.0/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/usr/local/rvm/bin:/var/lib/jenkins/.local/bin:/var/lib/jenkins/bin'
-  }
+  agent any
   stages {
     stage('get excel and python script') {
       steps {
