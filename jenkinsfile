@@ -25,8 +25,8 @@ chmod 754 paul_staging_mp_redir_validation.py'''
         script {
           if (fileExists('games-upload-locale.csv')) {
             sh 'echo "uploading games rules"'
-            sh 'python3 staging_mp_upload_rules.py games-upload-locale.csv'
-            sh 'cp games-upload-locale.csv /var/lib/jenkins/resources_edgekv/production/games-upload-locale-`date +%Y-%m-%d-%H-%M`.csv'
+            sh 'python3 staging_mp_upload_rules.py test-games-upload.csv'
+            sh 'cp test-games-upload.csv /var/lib/jenkins/resources_edgekv/production/games-upload-locale-`date +%Y-%m-%d-%H-%M`.csv'
           }
         }
 
@@ -39,7 +39,7 @@ chmod 754 paul_staging_mp_redir_validation.py'''
         script {
           if (fileExists('support-upload-locale.csv')) {
             sh 'echo "uploading support rules"'
-            sh 'python3 staging_mp_upload_rules.py support-upload-locale.csv'
+            sh 'python3 staging_mp_upload_rules.py test-support-upload.csv'
             sh 'cp support-upload-locale.csv /var/lib/jenkins/resources_edgekv/production/test-support-upload-locale-`date +%Y-%m-%d-%H-%M`.csv'
           }
         }
@@ -53,7 +53,7 @@ chmod 754 paul_staging_mp_redir_validation.py'''
         script {
           if (fileExists('general-upload-locale.csv')) {
             sh 'echo "uploading general rules"'
-            sh 'python3 staging_mp_upload_rules.py general-upload-locale.csv'
+            sh 'python3 staging_mp_upload_rules.py test-general-upload.csv'
             sh 'cp general-upload-locale.csv /var/lib/jenkins/resources_edgekv/production/test-general-upload-locale-`date +%Y-%m-%d-%H-%M`.csv'
           }
         }
