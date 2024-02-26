@@ -95,7 +95,7 @@ def thread_worker():
 def process_row(row):
     json_data = json.dumps(row)
     print(json_data)
-    url = 'https://paulm-sony.test.edgekey.net/staging/upload'
+    url = 'https://paulm-sony.test.edgekey.net/upload'
     headers = {"Content-type": "application/json", "User-Agent": "paul-python"}
     requests.packages.urllib3.disable_warnings()
     session = requests.Session()
