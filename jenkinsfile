@@ -26,21 +26,6 @@ chmod 754 paul_staging_mp_redir_validation.py'''
           if (fileExists('test-games-upload.csv')) {
             sh 'echo "uploading games rules"'
             sh 'python3 staging_mp_upload_rules.py test-games-upload.csv'
-            sh 'cp test-games-upload.csv /var/lib/jenkins/resources_edgekv/production/games-upload-locale-`date +%Y-%m-%d-%H-%M`.csv'
-          }
-        }
-
-      }
-    }
-
-    stage('Upload Support') {
-      steps {
-        echo 'Checking if there is a CSV file for support'
-        script {
-          if (fileExists('test-support-upload.csv')) {
-            sh 'echo "uploading support rules"'
-            sh 'python3 staging_mp_upload_rules.py test-support-upload.csv'
-            sh 'cp support-upload-locale.csv /var/lib/jenkins/resources_edgekv/production/test-support-upload-locale-`date +%Y-%m-%d-%H-%M`.csv'
           }
         }
 
@@ -54,7 +39,6 @@ chmod 754 paul_staging_mp_redir_validation.py'''
           if (fileExists('test-general-upload.csv')) {
             sh 'echo "uploading general rules"'
             sh 'python3 staging_mp_upload_rules.py test-general-upload.csv'
-            sh 'cp general-upload-locale.csv /var/lib/jenkins/resources_edgekv/production/test-general-upload-locale-`date +%Y-%m-%d-%H-%M`.csv'
           }
         }
 
