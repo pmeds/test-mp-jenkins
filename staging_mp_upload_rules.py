@@ -32,7 +32,7 @@ def _get_canonical_name(hostname_www):
 
 
 # Replace 'paulm-sony.test.edgekey.net' with the actual hostname
-get_canonical_name = _get_canonical_name('www.playstation.com')
+get_canonical_name = _get_canonical_name('paulm-sony.test.edgekey.net')
 
 if get_canonical_name:
     staging_host = get_canonical_name.replace('akamaiedge', 'akamaiedge-staging')
