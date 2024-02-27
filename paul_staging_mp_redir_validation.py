@@ -1,114 +1,68 @@
-import time
+import asyncio
 import pandas as pd
-import requests
 import dns.resolver
 import hashlib
-from urllib.parse import urlparse
-import concurrent.futures
-import sys
+from aiohttp import ClientSession, TCPConnector
+import ssl
 
-
-print("Waiting for 15 seconds for EKV to reach eventual consistency. Please be patient.")
-time.sleep(15)
-
-
-def _get_canonical_name(hostname_www):
-    print(f'Attempting to get canonical name for {hostname_www}')
+# Function to get the canonical name
+async def get_canonical_name(hostname):
     resolver = dns.resolver.Resolver()
     try:
-        canonical_name = resolver.resolve(hostname_www).canonical_name.to_unicode().rstrip('.')
-        print(f'{hostname_www} has canonical name {canonical_name}')
+        answer = resolver.resolve(hostname, 'CNAME')
+        canonical_name = str(answer[0].target).rstrip('.')
         return canonical_name
-    except dns.resolver.NXDOMAIN:
-        print(f'Nonexistent domain {hostname_www}')
-        return None
+    except dns.resolver.NoAnswer:
+        return hostname
 
-
-get_canonical_name = _get_canonical_name('paulm-sony.test.edgekey.net')
-print(get_canonical_name)
-
-staging_host = get_canonical_name.replace('akamaiedge', 'akamaiedge-staging')
-print(staging_host)
-
-
-def resolveDNSA():
-    domain = staging_host
+# Function to resolve DNS A record
+async def resolve_dns_a_record(hostname):
     resolver = dns.resolver.Resolver()
-    answer = resolver.resolve(domain, "A")
-    return answer
+    answer = resolver.resolve(hostname, "A")
+    ips = [str(item) for item in answer]
+    return ips[0]  # Return the first IP address
 
-
-resultDNSA = resolveDNSA()
-answerA = ''
-
-for item in resultDNSA:
-    resultant_str = ''.join([str(item), answerA])
-
-print(resultant_str)
-
-
-class HostHeaderSSLAdapter(requests.adapters.HTTPAdapter):
-    def resolve(self, hostname):
-        ips = resultant_str
-        resolutions = {'paulm-sony.test.edgekey.net': ips}
-        print(resolutions)
-        return resolutions.get(hostname)
-
-    def send(self, request, **kwargs):
-        connection_pool_kwargs = self.poolmanager.connection_pool_kw
-        result = urlparse(request.url)
-        resolved_ip = self.resolve(result.hostname)
-
-        if result.scheme == 'https' and resolved_ip:
-            request.url = request.url.replace('https://' + result.hostname, 'https://' + resolved_ip)
-            connection_pool_kwargs['server_hostname'] = result.hostname
-            connection_pool_kwargs['assert_hostname'] = result.hostname
-            request.headers['Host'] = result.hostname
-        else:
-            connection_pool_kwargs.pop('server_hostname', None)
-            connection_pool_kwargs.pop('assert_hostname', None)
-
-        return super(HostHeaderSSLAdapter, self).send(request, **kwargs)
-
-
-def process_url(row):
+# Process URL
+async def process_url(row, session, ip_address):
     source_data = row['source']
     destination = row['destination']
     host = row['hostname']
     fRedirect = 'https://' + host + destination
-    url = 'https://paulm-sony.test.edgekey.net' + source_data
-    headers = {"Accept": "text/html"}
+    url = f'https://{ip_address}' + source_data
+    headers = {"Accept": "text/html", "Host": "paulm-sony.test.edgekey.net"}
 
-    session = requests.Session()
-    session.mount('https://', HostHeaderSSLAdapter())
-    response = session.get(url, headers=headers, allow_redirects=False)
+    async with session.get(url, headers=headers, allow_redirects=False) as response:
+        rresponse = response.status
+        rlocation = response.headers.get('Location', None)
+        source_hash = hashlib.sha256(source_data.encode('utf-8')).hexdigest()
 
-    rresponse = response.status_code
-    rlocation = response.headers.get('Location', None)
-    source_hash = hashlib.sha256(source_data.encode('utf-8')).hexdigest()
+        if rresponse != 301:
+            print(f"Status code {rresponse} is incorrect for URL {url}, hash {source_hash}")
+        elif rresponse == 301 and fRedirect != rlocation:
+            print(f"Status code is correct, but the returned redirect {rlocation} is incorrect for incoming URL {url}")
+            print(f"The correct redirect is {fRedirect}. Please review the rules {source_hash} uploaded to EKV")
+        elif rresponse == 301 and fRedirect == rlocation:
+            print("All good")
 
-    if rresponse != 301:
-        print(f"Status code {rresponse} is incorrect for URL {url}, hash {source_hash}")
-    elif rresponse == 301 and fRedirect != rlocation:
-        print(f"Status code is correct, but the returned redirect {rlocation} is incorrect for incoming URL {url}")
-        print(f"The correct redirect is {fRedirect}. Please review the rules {source_hash} uploaded to EKV")
-    elif rresponse == 301 and fRedirect == rlocation:
-        print("All good")
-
-
-def main():
+# Main async function
+async def main():
     file_name = "test-uploader2.xlsx"
     df = pd.read_excel(file_name, engine='openpyxl')
 
-    # Define the number of threads you want to use
-    num_threads = 4  # For example, using 10 threads
+    # Perform DNS resolution once for the canonical name
+    canonical_name = await get_canonical_name('paulm-sony.test.edgekey.net')
+    staging_host = canonical_name.replace('akamaiedge', 'akamaiedge-staging')
+    ip_address = await resolve_dns_a_record(staging_host)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-        futures = [executor.submit(process_url, row) for _, row in df.iterrows()]
+    # SSL context
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
 
-        for future in concurrent.futures.as_completed(futures):
-            future.result()  # This will raise exceptions if any occurred within a thread
-
+    connector = TCPConnector(ssl=ssl_context)
+    async with ClientSession(connector=connector) as session:
+        tasks = [process_url(row, session, ip_address) for index, row in df.iterrows()]
+        await asyncio.gather(*tasks)
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
