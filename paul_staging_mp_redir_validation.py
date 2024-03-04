@@ -97,7 +97,7 @@ def process_url(row):
 
 
 def main():
-    file_name = "test-uploader2.xlsx"
+    file_name = "test-delete3.xlsx"
     df = pd.read_excel(file_name, engine='openpyxl')
 
     # Define the number of threads you want to use
