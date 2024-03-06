@@ -4,7 +4,7 @@ import csv
 import re
 
 # Master file with all the ruless
-filename = "test-delete3.xlsx"
+filename = "test-uploader2.xlsx"
 #print(filename)
 
 df = pd.read_excel(filename, engine='openpyxl')
