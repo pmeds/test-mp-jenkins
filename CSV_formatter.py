@@ -38,6 +38,6 @@ def write_data(filename, header, data):
         writer.writerow(header)
         writer.writerows(data)
 
-write_data('mp-test-games-upload.csv', header, games_data)
-write_data('mp-test-support-upload.csv', header, support_data)
-write_data('mp-test-general-upload.csv', header, general_data)
+write_data('mp-staging-test-games-upload.csv', header, games_data)
+write_data('mp-staging-test-support-upload.csv', header, support_data)
+write_data('mp-staging-test-general-upload.csv', header, general_data)
