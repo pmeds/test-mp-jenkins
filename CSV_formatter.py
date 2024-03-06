@@ -2,24 +2,20 @@ import pandas as pd
 import hashlib
 import csv
 import re
-# Master file with all the ruless
+
+# Master file with all the rules
 filename = "test-delete3.xlsx"
-print(filename)
-# header for the CSV files
-header = ['hash', 'source', 'destination', 'host']
-# False check to only write the header row once
-header_added = False
-headergm_added = False
-headers_added = False
+#print(filename)
 
-# Read spreadsheet, openpyxl is required for old versions of python
 df = pd.read_excel(filename, engine='openpyxl')
-# Iterate through the rows of the spreadsheet and extract the data:
-# source_data is the incoming URL
-# source_hash is the hash of the incoming URL and the key for EKV
-# destination is the redirect path
-# ekvitem has the value of the variables to be written to the respective upload.csv
+header = ['hash', 'source', 'destination', 'host']
 
+# Pre-compile the regular expressions
+games_re = re.compile(r'games|editorial|ps4-games|ps-vr-games|ps-plus|on_ps3|on-psvita|spongebob|ace-combat|ps-vr2')
+support_re = re.compile(r'support|soporte')
+
+# Initialize dictionaries to hold categorized data
+games_data, support_data, general_data = [], [], []
 
 for index, row in df.iterrows():
     source_data = row['source']
@@ -27,35 +23,21 @@ for index, row in df.iterrows():
     destination = row['destination']
     host = row['hostname']
     ekvitem = [source_hash, source_data, destination, host]
-# Check if source_data contains any of the paths that belong to the games namespace
-# Creates the respective upload csvs for ekvuploader
-    if re.search(r'games|editorial|ps4-games|ps-vr-games|ps-plus|on_ps3|on-psvita|spongebob|ace-combat', source_data):
-        with open('test-games-upload.csv', 'a') as gamesw:
-            writerg = csv.writer(gamesw, lineterminator='\n')
-            if not headergm_added:
-                writerg.writerow(header)
-                headergm_added = True
-                print(header)
-            print("now writing to games")
-            print(ekvitem)
-            writerg.writerows([ekvitem])
-    elif re.search(r'support|soporte', source_data):
-        with open('test-support-upload.csv', 'a') as supportw:
-            writers = csv.writer(supportw, lineterminator='\n')
-            if not headers_added:
-                writers.writerow(header)
-                headers_added = True
-                print(header)
-            print("now writing to support")
-            print(ekvitem)
-            writers.writerows([ekvitem])
+
+    if games_re.search(source_data):
+        games_data.append(ekvitem)
+    elif support_re.search(source_data):
+        support_data.append(ekvitem)
     else:
-        with open('test-general-upload.csv', 'a') as generalw:
-            writer = csv.writer(generalw, lineterminator='\n')
-            if not header_added:
-                writer.writerow(header)
-                header_added = True
-                print(header)
-            print('now writing to general')
-            print(ekvitem)
-            writer.writerows([ekvitem])
+        general_data.append(ekvitem)
+
+# Write data to files
+def write_data(filename, header, data):
+    with open(filename, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerows(data)
+
+write_data('mp-test-games-upload.csv', header, games_data)
+write_data('mp-test-support-upload.csv', header, support_data)
+write_data('mp-test-general-upload.csv', header, general_data)
